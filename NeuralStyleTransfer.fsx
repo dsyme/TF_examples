@@ -20,11 +20,11 @@ if not System.Environment.Is64BitProcess then System.Environment.Exit(-1)
 
 type Argument =
     | [<AltCommandLine([|"-s"|])>] Style of string
-    with
-        interface IArgParserTemplate with
-            member this.Usage =
-                match this with
-                |  Style _ -> "Specify a style of painting to use."
+
+    interface IArgParserTemplate with
+        member this.Usage =
+            match this with
+            |  Style _ -> "Specify a style of painting to use."
 
 let style = ArgumentParser<Argument>().Parse(fsi.CommandLineArgs.[1..]).GetResult(<@ Argument.Style @>, defaultValue = "rain")
 
@@ -33,11 +33,6 @@ fsi.AddPrinter(fun (x:TFGraph) -> sprintf "TFGraph %i" (int64 x.Handle))
 let pretrained_dir = Path.Combine(__SOURCE_DIRECTORY__,"pretrained")
 
 let example_dir = Path.Combine(__SOURCE_DIRECTORY__,"examples")
-
-module Array =
-    let enumerate (xs:'a[]) = xs |> Array.mapi (fun i x -> (i,x))
-    let foldi (f:'b -> (int*'a) -> 'b) (state:'b) (xs:'a[]) : 'b =
-        Array.fold f state (xs |> enumerate) 
 
 module PretrainedFFStyleVGG =
 
@@ -117,11 +112,11 @@ let graph = sess.Graph
 let weights_path = Path.Combine(pretrained_dir, sprintf "fast_style_weights_%s.npz" style)
 
 let weights_map = 
-            readFromNPZ((File.ReadAllBytes(weights_path)))
-            |> Map.toArray 
-            |> Array.map (fun (k,(metadata, arr)) -> 
-                k.Substring(0, k.Length-4), graph.Reshape(graph.Const(new TFTensor(arr)), graph.Const(TFShape(metadata.shape |> Array.map int64).AsTensor()))) 
-            |> Map.ofArray
+    readFromNPZ((File.ReadAllBytes(weights_path)))
+    |> Map.toArray 
+    |> Array.map (fun (k,(metadata, arr)) -> 
+        k.Substring(0, k.Length-4), graph.Reshape(graph.Const(new TFTensor(arr)), graph.Const(TFShape(metadata.shape |> Array.map int64).AsTensor()))) 
+    |> Map.ofArray
 
 // TODO figure out how to enable Conv2DTranspose to work on arbitrary shapped inputs
 //let input = graph.Placeholder(TFDataType.Float, TFShape(-1L,-1L,-1L,3L),"input")
@@ -162,3 +157,4 @@ let tensorToPNG(batchIndex:int) (imgs:TFTensor) =
 
 
 File.WriteAllBytes(Path.Combine(__SOURCE_DIRECTORY__, sprintf "chicago_in_%s_style.png" style), tensorToPNG 0 img_styled)
+
